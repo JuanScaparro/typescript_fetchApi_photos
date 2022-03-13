@@ -1,7 +1,9 @@
-import { IPhoto } from "./interfaces/iPhoto.interface.js";
+//import { IPhoto } from "./interfaces/iPhoto.interface.js";
+import { IPizzaPhotos, IPhoto } from "./interfaces/iPizzaPhotos.interface.js";
+import { PB_API_KEY, PB_URL } from "./utils/api.js";
 
 
-
+let isLoading: boolean = false
 let photos: IPhoto[] = [];
 let actualPhotoIndex: number = 0;
 const rowElement: HTMLElement = <HTMLElement>document.querySelector( '#row' );
@@ -9,15 +11,32 @@ const btnNext: HTMLButtonElement = <HTMLButtonElement>document.getElementById( '
 btnNext.addEventListener( 'click', next )
 const btnPrev: HTMLButtonElement = <HTMLButtonElement>document.querySelector( '#prev' )
 btnPrev.addEventListener( 'click', prev )
+const spinner: HTMLElement = <HTMLElement>document.getElementById('spinner')
+const container: HTMLElement = <HTMLElement>document.querySelector('.container')
 
+function loadingStatus(){
+  isLoading = !isLoading
+  spinner.style.display = isLoading ? "block" : "none"
+  container.style.display = !isLoading ? "block" : "none"
+}
 
-function loadData() {
-  const url = 'https://jsonplaceholder.typicode.com/photos';
-  
-  fetch( url )
-    .then( res => res.json() )
-    .then( jsonRes => saveData( jsonRes ) )
-};
+async function loadData(){
+  const url = `${PB_URL.base}?key=${PB_API_KEY}&q=`;
+  loadingStatus()
+    try {
+      const resp = await fetch( url )
+      const data = await resp.json()
+      saveData(data.hits)
+    } catch (error: any) {
+      showError(error)
+    } finally{
+      loadingStatus()
+    }
+}
+
+function showError(error: any){
+  window.alert("UPSSSSS... te invitamos a que vuelvas a intentarlo.")
+}
 
 function saveData( data: IPhoto[] ) {
   photos = data;
@@ -25,12 +44,16 @@ function saveData( data: IPhoto[] ) {
 };
 
 function buildPhotoCard( photo: IPhoto) {
+  const { previewURL, tags, user, type, largeImageURL } = photo
+  const text = `User: ${user} - Type: ${type}`
   rowElement.innerHTML = '';
   const template: string = `<div class="card text-center">
                               <div class="card-body">
-                                <img src=${photo.url} class="card-img-top img" alt="...">
-                                <h3 class="card-title">${photo.title}</h3>
-                                <p class="card-text">Id: ${photo.id} - Album Id: ${photo.albumId}</p>
+                                <a href=${largeImageURL} target="_blank">
+                                 <img src=${previewURL} class="card-img-top img" alt="...">
+                                </a>
+                                <h3 class="card-title">${tags}</h3>
+                                <p class="card-text">${text}</p>
                               </div>
                             </div>`
   const div = document.createElement( 'div' );
@@ -43,7 +66,7 @@ function next() {
     actualPhotoIndex ++;
     buildPhotoCard( photos[actualPhotoIndex] )
   }else{
-    window.alert( 'Ultimo Imagen' );
+    window.alert( 'Ultima Imagen' );
   };
 };
 
